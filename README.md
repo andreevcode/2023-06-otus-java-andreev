@@ -1,4 +1,5 @@
 # 2023-06-otus-java-andreev
 
-### ДЗ
-[ДЗ 1. GRADLE](./hw01-gradle/README.md)
+### Задания
+- [ДЗ 1. GRADLE](./hw01-gradle/README.md)
+- [ДЗ 3. Annotations](./hw03-annotations/README.md)

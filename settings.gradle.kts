@@ -1,6 +1,7 @@
 rootProject.name = "otusJava"
 include ("hw01-gradle")
 include("hw02-generics")
+include("hw03-annotations")
 
 pluginManagement {
     val dependencyManagement: String by settings
@@ -13,4 +14,3 @@ pluginManagement {
         id("org.springframework.boot") version springframeworkBoot
     }
 }
-include("hw02-generics")
