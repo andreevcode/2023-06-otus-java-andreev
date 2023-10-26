@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import static ru.otus.tests.framework.ReflectionHelper.callMethod;
 
 public class TestRunnerImpl implements TestRunner {
+    private static final int OK_RESULT = 1;
+    private static final int FAILED_RESULT = 0;
     private static final String BEFORE = Before.class.getName();
     private static final String AFTER = After.class.getName();
     private static final String TEST = Test.class.getName();
@@ -34,7 +36,7 @@ public class TestRunnerImpl implements TestRunner {
         }
     }
 
-    private void testClassLookup(String className) throws ClassNotFoundException{
+    private void testClassLookup(String className) throws ClassNotFoundException {
         testClass = Class.forName(className);
         var methods = Arrays.asList(testClass.getMethods());
         methods.forEach(method -> {
@@ -59,19 +61,18 @@ public class TestRunnerImpl implements TestRunner {
     private int runTests() {
         int finishedGood = 0;
         return testMethods.stream()
+                .map(testMethod -> new TestWrapper<>(testClass, testMethod))
                 .map(this::runTestFor)
                 .reduce(finishedGood, Integer::sum);
     }
 
-    private int runTestFor(String testMethod) {
-        boolean result = false;
-        var test = new TestWrapper<>(testClass, testMethod);
-
+    private <T> int runTestFor(TestWrapper<T> test) {
+        int result = 0;
         if (preparedFor(test)) {
-            result = runTest(test, res -> log.info("TEST {}: result {}", testMethod, res));
+            result = runTest(test, res -> log.info("TEST {}: result {}", test.getTestMethodName(), res));
         }
         tearDownAfter(test);
-        return result ? 1 : 0;
+        return result;
     }
 
     private String resolveResult(boolean result) {
@@ -91,11 +92,11 @@ public class TestRunnerImpl implements TestRunner {
         log.info("TEST {}: teardown {}\n--------------", test.getTestMethodName(), resolveResult(result));
     }
 
-    private <T> boolean runTest(TestWrapper<T> test, Consumer<String> callback) {
+    private <T> int runTest(TestWrapper<T> test, Consumer<String> callback) {
         log.info("TEST {}: test started......", test.getTestMethodName());
         var result = getMethodResult(test, test.getTestMethodName());
         callback.accept(resolveResult(result));
-        return result;
+        return result ? OK_RESULT : FAILED_RESULT;
     }
 
     private <T> boolean getMethodResult(TestWrapper<T> test, String method) {
