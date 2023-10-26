@@ -5,6 +5,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static ru.otus.tests.framework.ReflectionHelper.callMethod;
 
 public class TestRunnerImpl implements TestRunner {
@@ -13,19 +16,25 @@ public class TestRunnerImpl implements TestRunner {
     private static final String TEST = Test.class.getName();
     private static final String OK = "OK";
     private static final String FAILED = "FAILED";
+
+    private final Logger log = LoggerFactory.getLogger(TestRunnerImpl.class);
     private final List<String> testMethods = new ArrayList<>();
     private final List<String> beforeMethods = new ArrayList<>();
     private final List<String> afterMethods = new ArrayList<>();
     private Class<?> testClass;
 
     @Override
-    public void runTestsFor(String className) throws ClassNotFoundException {
-        testClassLookup(className);
-        System.out.printf("::::::::::::::::::::: Starting tests for %s%n%n", testClass.getName());
-        printSummary(runTests(), testMethods.size());
+    public void runTestsFor(String className) {
+        try {
+            testClassLookup(className);
+            log.info("\n::::::::::::::::::::: Starting tests for {}\n", testClass.getName());
+            printSummary(runTests(), testMethods.size());
+        } catch (ClassNotFoundException e) {
+            log.error("Can't find class {} {}", className, e);
+        }
     }
 
-    private void testClassLookup(String className) throws ClassNotFoundException {
+    private void testClassLookup(String className) throws ClassNotFoundException{
         testClass = Class.forName(className);
         var methods = Arrays.asList(testClass.getMethods());
         methods.forEach(method -> {
@@ -44,7 +53,7 @@ public class TestRunnerImpl implements TestRunner {
     }
 
     private void printSummary(int good, int all) {
-        System.out.printf("-------------------%nTESTS COUNT: %d%nGOOD: %d%nBAD: %d%n%n%n", all, good, all - good);
+        log.info("-------------------\nTESTS COUNT: {}\nGOOD: {}\nBAD: {}\n", all, good, all - good);
     }
 
     private int runTests() {
@@ -59,10 +68,9 @@ public class TestRunnerImpl implements TestRunner {
         var test = new TestWrapper<>(testClass, testMethod);
 
         if (preparedFor(test)) {
-            result = runTest(test, res -> System.out.printf("TEST %s: result %s%n", testMethod, res));
+            result = runTest(test, res -> log.info("TEST {}: result {}", testMethod, res));
         }
         tearDownAfter(test);
-
         return result ? 1 : 0;
     }
 
@@ -71,20 +79,20 @@ public class TestRunnerImpl implements TestRunner {
     }
 
     private <T> boolean preparedFor(TestWrapper<T> test) {
-        System.out.printf("TEST %s: preparation started......%n", test.getTestMethodName());
+        log.info("TEST {}: preparation started......", test.getTestMethodName());
         var result = beforeMethods.stream().allMatch(before -> getMethodResult(test, before));
-        System.out.printf("TEST %s: preparation %s%n", test.getTestMethodName(), resolveResult(result));
+        log.info("TEST {}: preparation {}", test.getTestMethodName(), resolveResult(result));
         return result;
     }
 
     private <T> void tearDownAfter(TestWrapper<T> test) {
-        System.out.printf("TEST %s: teardown started......%n", test.getTestMethodName());
+        log.info("TEST {}: teardown started......", test.getTestMethodName());
         var result = afterMethods.stream().allMatch(after -> getMethodResult(test, after));
-        System.out.printf("TEST %s: teardown %s%n--------------%n", test.getTestMethodName(), resolveResult(result));
+        log.info("TEST {}: teardown {}\n--------------", test.getTestMethodName(), resolveResult(result));
     }
 
     private <T> boolean runTest(TestWrapper<T> test, Consumer<String> callback) {
-        System.out.printf("TEST %s: test started......%n", test.getTestMethodName());
+        log.info("TEST {}: test started......", test.getTestMethodName());
         var result = getMethodResult(test, test.getTestMethodName());
         callback.accept(resolveResult(result));
         return result;
@@ -94,7 +102,7 @@ public class TestRunnerImpl implements TestRunner {
         try {
             callMethod(test.getTestInstance(), method);
         } catch (RuntimeException e) {
-            e.printStackTrace();
+            log.error("Error during test run for {}", method, e);
             return false;
         }
         return true;

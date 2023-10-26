@@ -4,11 +4,9 @@ import ru.otus.tests.framework.TestRunnerImpl;
 
 public class TestFrameworkDemo {
 
-    public static void main(String[] args) throws ClassNotFoundException {
-        var baseTestRunner = new TestRunnerImpl();
-        baseTestRunner.runTestsFor("ru.otus.tests.app.BaseTest");
-
-        var beforeAndAfterFailedTestRunner = new TestRunnerImpl();
-        beforeAndAfterFailedTestRunner.runTestsFor("ru.otus.tests.app.BeforeAndAfterFailedTest");
+    public static void main(String[] args) {
+        new TestRunnerImpl().runTestsFor("ru.otus.tests.app.StartTest");
+        new TestRunnerImpl().runTestsFor("ru.otus.tests.app.BaseTest");
+        new TestRunnerImpl().runTestsFor("ru.otus.tests.app.BeforeAndAfterFailedTest");
     }
 }
