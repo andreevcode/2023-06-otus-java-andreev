@@ -3,6 +3,7 @@ package ru.otus.tests.framework;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
@@ -23,22 +24,22 @@ public class TestRunnerImpl implements TestRunner {
     private final List<String> testMethods = new ArrayList<>();
     private final List<String> beforeMethods = new ArrayList<>();
     private final List<String> afterMethods = new ArrayList<>();
-    private Class<?> testClass;
+    private Class<?> testClazz;
 
     @Override
     public void runTestsFor(String className) {
         try {
             testClassLookup(className);
-            log.info("\n::::::::::::::::::::: Starting tests for {}\n", testClass.getName());
+            log.info("\n::::::::::::::::::::: Starting tests for {}\n", testClazz.getName());
             printSummary(runTests(), testMethods.size());
         } catch (ClassNotFoundException e) {
-            log.error("Can't find class {} {}", className, e);
+            log.error("Can't find class for {}", className, e);
         }
     }
 
     private void testClassLookup(String className) throws ClassNotFoundException {
-        testClass = Class.forName(className);
-        var methods = Arrays.asList(testClass.getMethods());
+        testClazz = Class.forName(className);
+        var methods = Arrays.asList(testClazz.getMethods());
         methods.forEach(method -> {
             for (var annotation : method.getAnnotations()) {
                 var annotationName = annotation.annotationType().getName();
@@ -59,11 +60,20 @@ public class TestRunnerImpl implements TestRunner {
     }
 
     private int runTests() {
-        int finishedGood = 0;
         return testMethods.stream()
-                .map(testMethod -> new TestWrapper<>(testClass, testMethod))
+                .map(testMethod -> {
+                            try {
+                                return new TestWrapper<>(testClazz, testMethod);
+                            } catch (RuntimeException e) {
+                                log.error("Skip test {} at {} - can't instantiate test object",
+                                        testMethod, testClazz.getName(), e);
+                                return null;
+                            }
+                        }
+                )
+                .filter(Objects::nonNull)
                 .map(this::runTestFor)
-                .reduce(finishedGood, Integer::sum);
+                .reduce(0, Integer::sum);
     }
 
     private <T> int runTestFor(TestWrapper<T> test) {
