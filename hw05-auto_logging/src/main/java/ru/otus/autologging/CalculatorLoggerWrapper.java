@@ -30,7 +30,7 @@ class CalculatorLoggerWrapper {
     static class CalculatorInvocationHandler implements InvocationHandler {
         private static final String LOG = Log.class.getName();
         private final Calculator calculator;
-        private final Set<String> methodsSignatures;
+        private final Set<String> methodSignatures;
 
         private String getMethodSignature(Method method) {
             return method.getName() + Arrays.toString(method.getParameters());
@@ -38,7 +38,7 @@ class CalculatorLoggerWrapper {
 
         private void logIfNeeded(Method method, Object[] args) {
             var methodSignature = getMethodSignature(method);
-            if (this.methodsSignatures.contains(methodSignature)) {
+            if (this.methodSignatures.contains(methodSignature)) {
                 log.info("EXTRA LOGGING - invoking method: {}, parameters: {}",
                         methodSignature, Arrays.toString(args));
             }
@@ -51,7 +51,7 @@ class CalculatorLoggerWrapper {
         public CalculatorInvocationHandler(Calculator calculator) {
             this.calculator = calculator;
 
-            this.methodsSignatures = Arrays.stream(calculator.getClass().getDeclaredMethods())
+            this.methodSignatures = Arrays.stream(calculator.getClass().getDeclaredMethods())
                     .filter(method -> Arrays.stream(method.getAnnotations())
                             .anyMatch(this::hasLogAnnotation))
                     .map(this::getMethodSignature)
