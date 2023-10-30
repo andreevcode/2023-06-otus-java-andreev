@@ -1,6 +1,5 @@
 package ru.otus.autologging;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -28,9 +27,19 @@ class CalculatorLoggerWrapper {
     }
 
     static class CalculatorInvocationHandler implements InvocationHandler {
-        private static final String LOG = Log.class.getName();
         private final Calculator calculator;
         private final Set<String> methodSignatures;
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            logIfNeeded(method, args);
+            return method.invoke(calculator, args);
+        }
+
+        @Override
+        public String toString() {
+            return "CalculatorInvocationHandler{" + "calculator=" + calculator + '}';
+        }
 
         private String getMethodSignature(Method method) {
             return method.getName() + Arrays.toString(method.getParameters());
@@ -44,29 +53,13 @@ class CalculatorLoggerWrapper {
             }
         }
 
-        private boolean hasLogAnnotation(Annotation annotation) {
-            return annotation.annotationType().getName().equals(LOG);
-        }
-
         public CalculatorInvocationHandler(Calculator calculator) {
             this.calculator = calculator;
 
             this.methodSignatures = Arrays.stream(calculator.getClass().getDeclaredMethods())
-                    .filter(method -> Arrays.stream(method.getAnnotations())
-                            .anyMatch(this::hasLogAnnotation))
+                    .filter(method -> method.isAnnotationPresent(Log.class))
                     .map(this::getMethodSignature)
                     .collect(Collectors.toSet());
-        }
-
-        @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            logIfNeeded(method, args);
-            return method.invoke(calculator, args);
-        }
-
-        @Override
-        public String toString() {
-            return "CalculatorInvocationHandler{" + "calculator=" + calculator + '}';
         }
     }
 }
