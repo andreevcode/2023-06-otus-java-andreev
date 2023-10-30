@@ -3,8 +3,7 @@ package ru.otus.autologging;
 import ru.otus.autologging.annotation.Log;
 
 public class AddCalculatorImpl implements Calculator{
-
-    private int baseValue;
+    private final int baseValue;
 
     public AddCalculatorImpl(int baseValue) {
         this.baseValue = baseValue;
