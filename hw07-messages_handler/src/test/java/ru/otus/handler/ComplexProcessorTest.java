@@ -139,7 +139,6 @@ class ComplexProcessorTest {
         );
 
         // when
-
         var exception = assertThrows(EvenSecondException.class,
                 () -> {
                     for (int i = 0; i < 2; i++) {
