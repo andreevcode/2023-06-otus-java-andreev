@@ -2,18 +2,27 @@ package ru.otus.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import ru.otus.listener.Listener;
 import ru.otus.model.Message;
+import ru.otus.processor.EvenSecondException;
+import ru.otus.processor.EvenSecondProcessor;
+import ru.otus.processor.PermuteFields11And12Processor;
 import ru.otus.processor.Processor;
 
 class ComplexProcessorTest {
@@ -88,6 +97,63 @@ class ComplexProcessorTest {
 
         // then
         verify(listener, times(1)).onUpdated(message);
+    }
+
+    @Test
+    @DisplayName("Тестируем процессор, который переставляет поля")
+    void permuteFields11And12ProcessorTest(){
+        var message = new Message.Builder(1L).field11("field11").field12("field12").build();
+        var permuteFields11And12Processor = new PermuteFields11And12Processor();
+        var complexProcessor = new ComplexProcessor(
+                List.of(permuteFields11And12Processor),
+                ex -> {
+                    throw new RuntimeException("Message handling failed", ex);
+                }
+        );
+
+        // when
+        var result = complexProcessor.handle(message);
+        assertEquals(result.getField12(), message.getField11());
+        assertEquals(result.getField11(), message.getField12());
+    }
+
+    @Test
+    @DisplayName("Тестируем выбрасывание ошибки для EventSecondProcessor")
+    void evenSecondProcessorTest(){
+        var message = new Message.Builder(1L).field11("field11").build();
+        var evenSecondProcessor = spy(new EvenSecondProcessor(() -> LocalDateTime.now().getSecond()));
+        var processor2 = mock(Processor.class);
+        when(processor2.process(message)).thenReturn(message);
+
+        var complexProcessor = new ComplexProcessor(
+                List.of(evenSecondProcessor),
+                ex -> {
+                    try {
+                        throw ex;
+                    } catch (EvenSecondException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+        );
+
+        // when
+
+        var exception = assertThrows(EvenSecondException.class,
+                () -> {
+                    for (int i = 0; i < 2; i++) {
+                        System.out.printf("Current second: %d\n", LocalDateTime.now().getSecond());
+                        complexProcessor.handle(message);
+                        Thread.sleep(1000);
+                    }
+                });
+
+        // then
+        verify(evenSecondProcessor, atMost(2)).process(message);
+        verify(processor2, never()).process(message);
+        var expectedMessage = "Processor failed at even time second";
+        assertTrue(exception.getMessage().contains(expectedMessage));
     }
 
     private static class TestException extends RuntimeException {
