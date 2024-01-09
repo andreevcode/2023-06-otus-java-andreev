@@ -5,17 +5,19 @@ import java.util.Map;
 import java.util.Optional;
 import ru.otus.listener.Listener;
 import ru.otus.model.Message;
+import ru.otus.model.MessageSnapshot;
 
 public class HistoryListener implements Listener, HistoryReader {
-    private final Map<Long, Message> historyMessages = new HashMap<>();
+    private final Map<Long, MessageSnapshot> historyMessageSnapshots = new HashMap<>();
 
     @Override
     public void onUpdated(Message msg) {
-        historyMessages.put(msg.getId(), msg.toBuilder().build());
+        historyMessageSnapshots.put(msg.getId(), new MessageSnapshot(msg));
     }
 
     @Override
     public Optional<Message> findMessageById(long id) {
-        return Optional.ofNullable(historyMessages.get(id));
+        var snapshot = Optional.ofNullable(historyMessageSnapshots.get(id));
+        return snapshot.map(MessageSnapshot::getState);
     }
 }

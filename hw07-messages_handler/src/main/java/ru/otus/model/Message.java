@@ -1,7 +1,5 @@
 package ru.otus.model;
 
-import java.util.ArrayList;
-
 @SuppressWarnings({"java:S107", "java:S1135"})
 public class Message {
     private final long id;
@@ -226,7 +224,7 @@ public class Message {
             this.field10 = field10;
             this.field11 = field11;
             this.field12 = field12;
-            this.field13 = deepCopy(field13);
+            this.field13 = field13;
         }
 
         public Builder field1(String field1) {
@@ -290,17 +288,8 @@ public class Message {
         }
 
         public Builder field13(ObjectForMessage field13) {
-            this.field13 = deepCopy(field13);
+            this.field13 = field13;
             return this;
-        }
-
-        private ObjectForMessage deepCopy(ObjectForMessage msg) {
-            if (msg == null){
-                return null;
-            }
-            var copy = new ObjectForMessage();
-            copy.setData(new ArrayList<>(msg.getData()));
-            return copy;
         }
 
         public Message build() {
