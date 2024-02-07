@@ -1,12 +1,10 @@
 package ru.otus.handler;
 
-import java.time.LocalDateTime;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.mockito.Mockito;
 import ru.otus.model.Message;
+import ru.otus.processor.CurrentSecondProvider;
 import ru.otus.processor.EvenSecondException;
 import ru.otus.processor.EvenSecondProcessor;
 import ru.otus.processor.Processor;
@@ -15,21 +13,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class EvenSecondProcessorTest {
-    private final static Logger log = LoggerFactory.getLogger(EvenSecondProcessorTest.class);
-    private final Processor evenSecondProcessor = new EvenSecondProcessor(() -> LocalDateTime.now().getSecond());
+    private final static int EVEN_SECOND = 40;
+    private final static int ODD_SECOND = 41;
+
+    private final CurrentSecondProvider evenSecondProviderMock = Mockito.mock(CurrentSecondProvider.class);
+    private final Processor evenSecondProcessor = new EvenSecondProcessor(evenSecondProviderMock);
 
     @Test
     @DisplayName("Тестируем выбрасывание ошибки на четной секунде")
-    void evenSecondProcessorExceptionTest() throws InterruptedException {
-        var message = new Message.Builder(1L).field11("field11").build();
-        var second = LocalDateTime.now().getSecond();
-        if (second % 2 != 0){
-            Thread.sleep(1000);
-            second = LocalDateTime.now().getSecond();
-        }
-        log.info("Current second: {}", second);
-
+    void evenSecondProcessorExceptionTest() {
         // when
+        Mockito.when(evenSecondProviderMock.getSecond()).thenReturn(EVEN_SECOND);
+        var message = new Message.Builder(1L).field11("field11").build();
         var expectedEx = assertThrows(EvenSecondException.class, () -> evenSecondProcessor.process(message));
 
         // then
@@ -39,16 +34,10 @@ class EvenSecondProcessorTest {
 
     @Test
     @DisplayName("Тестируем нормальную работу на нечетной секунде")
-    void evenSecondProcessorNoExceptionTest() throws InterruptedException {
-        var message = new Message.Builder(1L).field11("field11").build();
-        var second = LocalDateTime.now().getSecond();
-        if (second % 2 == 0){
-            Thread.sleep(1000);
-            second = LocalDateTime.now().getSecond();
-        }
-        log.info("Current second: {}", second);
-
+    void evenSecondProcessorNoExceptionTest() {
         // when
+        Mockito.when(evenSecondProviderMock.getSecond()).thenReturn(ODD_SECOND);
+        var message = new Message.Builder(1L).field11("field11").build();
         var result = evenSecondProcessor.process(message);
 
         // then
