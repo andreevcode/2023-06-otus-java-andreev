@@ -3,6 +3,7 @@ include("hw01-gradle")
 include("hw02-generics")
 include("hw03-annotations")
 include("hw05-auto_logging")
+include("hw09-orm")
 
 pluginManagement {
     val dependencyManagement: String by settings
